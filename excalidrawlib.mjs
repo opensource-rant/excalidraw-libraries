@@ -18,9 +18,12 @@ for (const path of libraryItems) {
   const ciphertext = crypto.AES.encrypt(JSON.stringify(json), secret).toString();
   const info = libraryData.find(e => e.source == `${user}/${libraryName}`)
   const filesToBackup = await glob(['*.jpg', '*.png'],`libraries/${user}`)
-  await fetch(`https://github.com/${user}/${user}/funding_links?fragment=1`).then(resp => resp.text()).then(text => {
+  const temporaryFork = 'opensource-rant'
+  await fetch(`https://github.com/${temporaryFork}/${temporaryFork}/funding_links?fragment=1`).then(resp => resp.text()).then(text => {
     const dom = new JSDOM(text)
     const anchor = dom.window.document.querySelector('a')
+
+    console.log(text)
 
     if (anchor != null) {
       info['sponsorshipLink'] = anchor.getAttribute('href') 
