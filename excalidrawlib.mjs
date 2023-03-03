@@ -1,5 +1,6 @@
 import { glob } from 'fs-extra-plus'
 import crypto from 'crypto-js'
+import { JSDOM } from 'jsdom'
 
 const results = []
 
@@ -7,21 +8,33 @@ const libraryItems = await glob('libraries/**/*.excalidrawlib')
 
 const libraryData = await fs.readJSON('libraries.json')
 
-let secret = $.env.SECRET
+let secret = $.env.SECRET || 'test'
 
 for (const path of libraryItems) {
   if (path == '') continue
 
-  const [_, user, libraryName] = path.split("/")
+  let [_, user, libraryName] = path.split("/")
   const json = fs.readJSON(path)
   const ciphertext = crypto.AES.encrypt(JSON.stringify(json), secret).toString();
   const info = libraryData.find(e => e.source == `${user}/${libraryName}`)
+  const filesToBackup = await glob(['*.jpg', '*.png'],`libraries/${user}`)
+  await fetch(`https://github.com/${user}/${user}/funding_links?fragment=1`).then(resp => resp.text()).then(text => {
+    const dom = new JSDOM(text)
+    const anchor = dom.window.document.querySelector('a')
 
-  results.push({
-    "tag": `${ciphertext}`,
-    "hostname": `${user}.${libraryName}?${new URLSearchParams(info).toString()}`,
-    "backup": await glob(['*.jpg', '*.png'],`libraries/${user}`)
+    if (anchor != null) {
+      info['sponsorshipLink'] = anchor.getAttribute('href') 
+    }
+    info['room'] = ciphertext
+    results.push({
+      "tag": `${new URLSearchParams(info).toString()}`,
+      "hostname": `${user}.${libraryName}`,
+      "backup": filesToBackup
+    })
+    
   })
+
+
 }
 
 fs.writeJSON('data.json', results)
